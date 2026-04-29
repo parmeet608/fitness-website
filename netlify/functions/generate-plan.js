@@ -27,7 +27,7 @@ exports.handler = async (event) => {
       };
     }
 
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest"];
+    const models = ["gemini-1.5-flash", "gemini-2.0-flash"];
     let lastError = "Gemini API request failed";
 
     for (const model of models) {
