@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Fitness Plan Generator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Free Workout Plan Generator</h1>
+    <p class="subtitle">Tell us your goal and experience level to get a practical, beginner-friendly plan.</p>
+
+    <form id="plan-form" class="card">
+      <label for="goal">What is your main fitness goal?</label>
+      <select id="goal" required>
+        <option value="">Select a goal</option>
+        <option value="fat-loss">Fat loss</option>
+        <option value="muscle-gain">Muscle gain</option>
+        <option value="strength">Build strength</option>
+        <option value="general-fitness">General fitness</option>
+      </select>
+
+      <fieldset>
+        <legend>Where do you usually work out?</legend>
+        <label><input type="radio" name="location" value="gym" required> Gym</label>
+        <label><input type="radio" name="location" value="home" required> Home</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>How much experience do you have?</legend>
+        <label><input type="radio" name="experience" value="beginner" required> Beginner / just starting</label>
+        <label><input type="radio" name="experience" value="intermediate"> Intermediate</label>
+        <label><input type="radio" name="experience" value="advanced"> Advanced</label>
+      </fieldset>
+
+      <button type="submit">Generate My Free Plan</button>
+    </form>
+
+    <section id="result" class="card hidden" aria-live="polite">
+      <h2>Your Personalized Plan</h2>
+      <div id="plan-output"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
