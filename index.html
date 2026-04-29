@@ -4,92 +4,124 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Free Fitness Plan Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <button type="button" id="dev-fill-test" class="dev-fill-test" aria-label="Fill random test data and generate plan">Fill & Test</button>
+
   <main class="container">
     <h1>Free Workout Plan Generator</h1>
     <p class="subtitle">Tell us your goal and experience level to get a practical, beginner-friendly plan.</p>
 
     <form id="plan-form" class="card">
-      <label for="goal">What is your main fitness goal?</label>
-      <select id="goal" required>
-        <option value="">Select a goal</option>
-        <option value="fat-loss">Fat loss</option>
-        <option value="muscle-gain">Muscle gain</option>
-        <option value="strength">Build strength</option>
-        <option value="general-fitness">General fitness</option>
-      </select>
+      <div class="step-indicator">
+        <div class="step-chip active" data-step="1">Step 1: Goals</div>
+        <div class="step-chip" data-step="2">Step 2: Body Stats</div>
+        <div class="step-chip" data-step="3">Step 3: Schedule</div>
+      </div>
 
-      <fieldset>
-        <legend>Where do you usually work out?</legend>
-        <label><input type="radio" name="location" value="gym" required> Gym</label>
-        <label><input type="radio" name="location" value="home" required> Home</label>
-      </fieldset>
+      <section class="form-step active" data-step="1">
+        <label class="fade-item" for="goal">What is your main fitness goal?</label>
+        <select class="fade-item" id="goal" required>
+          <option value="">Select a goal</option>
+          <option value="fat-loss">Fat loss</option>
+          <option value="muscle-gain">Muscle gain</option>
+          <option value="strength">Build strength</option>
+          <option value="general-fitness">General fitness</option>
+        </select>
 
-      <fieldset>
-        <legend>How much experience do you have?</legend>
-        <label><input type="radio" name="experience" value="beginner" required> Beginner / just starting</label>
-        <label><input type="radio" name="experience" value="intermediate"> Intermediate</label>
-        <label><input type="radio" name="experience" value="advanced"> Advanced</label>
-      </fieldset>
+        <fieldset class="fade-item">
+          <legend>Where do you usually work out?</legend>
+          <label><input type="radio" name="location" value="gym" required> Gym</label>
+          <label><input type="radio" name="location" value="home" required> Home</label>
+        </fieldset>
 
-      <label for="age">Age</label>
-      <input id="age" type="number" min="13" max="85" required placeholder="e.g. 24">
+        <fieldset class="fade-item">
+          <legend>How much experience do you have?</legend>
+          <label><input type="radio" name="experience" value="beginner" required> Beginner / just starting</label>
+          <label><input type="radio" name="experience" value="intermediate"> Intermediate</label>
+          <label><input type="radio" name="experience" value="advanced"> Advanced</label>
+        </fieldset>
+      </section>
 
-      <label for="gender">Gender</label>
-      <select id="gender" required>
-        <option value="">Select gender</option>
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-        <option value="non-binary">Non-binary</option>
-        <option value="prefer-not">Prefer not to say</option>
-      </select>
+      <section class="form-step" data-step="2">
+        <label class="fade-item" for="age">Age</label>
+        <input class="fade-item" id="age" type="number" min="13" max="85" required placeholder="e.g. 24">
 
-      <label for="activity-level">Current activity level</label>
-      <select id="activity-level" required>
-        <option value="">Select activity level</option>
-        <option value="sedentary">Sedentary (little movement)</option>
-        <option value="light">Lightly active (1-2 active days/week)</option>
-        <option value="moderate">Moderately active (3-4 active days/week)</option>
-        <option value="high">Highly active (5+ active days/week)</option>
-      </select>
+        <label class="fade-item" for="gender">Gender</label>
+        <select class="fade-item" id="gender" required>
+          <option value="">Select gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="non-binary">Non-binary</option>
+          <option value="prefer-not">Prefer not to say</option>
+        </select>
 
-      <label for="days">How many workout days per week can you commit?</label>
-      <input id="days" type="number" min="2" max="7" required placeholder="e.g. 4">
+        <label class="fade-item" for="activity-level">Current activity level</label>
+        <select class="fade-item" id="activity-level" required>
+          <option value="">Select activity level</option>
+          <option value="sedentary">Sedentary (little movement)</option>
+          <option value="light">Lightly active (1-2 active days/week)</option>
+          <option value="moderate">Moderately active (3-4 active days/week)</option>
+          <option value="high">Highly active (5+ active days/week)</option>
+        </select>
 
-      <label for="time">How much time per workout session? (minutes)</label>
-      <input id="time" type="number" min="20" max="180" required placeholder="e.g. 60">
+        <label class="fade-item" for="history">Injuries, pain points, medical limits, and workout history</label>
+        <textarea class="fade-item" id="history" rows="4" placeholder="Example: mild knee pain, no back injury, trained on/off for 1 year, can use dumbbells and machines."></textarea>
+      </section>
 
-      <label for="program-style">Preferred program style</label>
-      <select id="program-style" required>
-        <option value="">Select program style</option>
-        <option value="push-pull-legs">Push Pull Legs</option>
-        <option value="upper-lower">Upper Lower Split</option>
-        <option value="bro-split">Bro Split</option>
-        <option value="full-body">Full Body</option>
-        <option value="no-preference">No preference (AI choose best)</option>
-      </select>
+      <section class="form-step" data-step="3">
+        <label class="fade-item" for="days">How many workout days per week can you commit?</label>
+        <input class="fade-item" id="days" type="number" min="2" max="7" required placeholder="e.g. 4">
 
-      <fieldset>
-        <legend>Can you do cardio after weight training?</legend>
-        <label><input type="radio" name="cardio" value="yes" required> Yes</label>
-        <label><input type="radio" name="cardio" value="no" required> No</label>
-        <label><input type="radio" name="cardio" value="sometimes" required> Sometimes</label>
-      </fieldset>
+        <label class="fade-item" for="time">How much time per workout session? (minutes)</label>
+        <input class="fade-item" id="time" type="number" min="20" max="180" required placeholder="e.g. 60">
 
-      <label for="history">Injuries, pain points, medical limits, and workout history</label>
-      <textarea id="history" rows="4" placeholder="Example: mild knee pain, no back injury, trained on/off for 1 year, can use dumbbells and machines."></textarea>
+        <label class="fade-item" for="program-style">Preferred program style</label>
+        <select class="fade-item" id="program-style" required>
+          <option value="">Select program style</option>
+          <option value="push-pull-legs">Push Pull Legs</option>
+          <option value="upper-lower">Upper Lower Split</option>
+          <option value="bro-split">Bro Split</option>
+          <option value="full-body">Full Body</option>
+          <option value="no-preference">No preference (AI choose best)</option>
+        </select>
+      </section>
 
-      <button type="submit">Generate My Free Plan</button>
+      <div class="step-actions">
+        <button type="button" id="prev-step" class="secondary-btn hidden">Back</button>
+        <button type="button" id="next-step" class="secondary-btn">Next</button>
+        <button type="submit" id="generate-btn" class="hidden">Generate My Free Plan</button>
+      </div>
     </form>
 
     <section id="result" class="card hidden" aria-live="polite">
       <h2>Your Personalized Plan</h2>
-      <div id="plan-output"></div>
+      <div class="result-tabs">
+        <button type="button" class="tab-btn active" data-tab="workout">Workout Plan</button>
+        <button type="button" class="tab-btn" data-tab="nutrition">Nutrition Guide</button>
+      </div>
+      <div id="plan-output" class="tab-panel active"></div>
+      <div id="nutrition-output" class="tab-panel"></div>
+      <div class="result-actions">
+        <button type="button" id="download-pdf" class="secondary-btn">Download as PDF</button>
+      </div>
+      <div class="email-save">
+        <label for="email-input">Send this plan to my email</label>
+        <div class="email-row">
+          <input id="email-input" type="email" placeholder="you@example.com">
+          <button type="button" id="send-email" class="secondary-btn">Send Plan</button>
+        </div>
+        <p id="email-status"></p>
+      </div>
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
