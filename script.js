@@ -2,237 +2,157 @@ const form = document.getElementById("plan-form");
 const resultSection = document.getElementById("result");
 const planOutput = document.getElementById("plan-output");
 
-const plans = {
-  beginner: {
-    gym: {
-      "fat-loss": [
-        "30-40 minutes brisk incline walk or bike",
-        "Machine chest press - 3 x 10-12",
-        "Seated row machine - 3 x 10-12",
-        "Leg press - 3 x 12",
-        "Dumbbell shoulder press - 3 x 10",
-        "Plank - 3 x 20-30 sec"
-      ],
-      "muscle-gain": [
-        "Light warm-up: treadmill 8-10 minutes",
-        "Leg press - 4 x 8-12",
-        "Dumbbell bench press - 4 x 8-12",
-        "Lat pulldown machine - 4 x 10",
-        "Dumbbell Romanian deadlift (light) - 3 x 10",
-        "Cable triceps pushdown - 3 x 12"
-      ],
-      strength: [
-        "Bike warm-up 10 minutes",
-        "Hack squat or leg press machine - 4 x 6-8",
-        "Machine chest press - 4 x 6-8",
-        "Seated cable row - 4 x 8",
-        "Dumbbell shoulder press - 3 x 8",
-        "Farmer carry (dumbbells) - 3 x 30 sec"
-      ],
-      "general-fitness": [
-        "5-10 minutes easy cardio warm-up",
-        "Goblet squat - 3 x 10",
-        "Machine chest press - 3 x 10",
-        "Lat pulldown - 3 x 10",
-        "Dumbbell lunges - 2 x 10 each leg",
-        "Dead bug core exercise - 3 x 10"
-      ]
-    },
-    home: {
-      "fat-loss": [
-        "Brisk walk or march in place - 15 minutes",
-        "Bodyweight squat - 3 x 12",
-        "Knee or incline push-ups - 3 x 8-12",
-        "Dumbbell rows (or backpack row) - 3 x 12",
-        "Step-ups on sturdy surface - 3 x 10 each leg",
-        "Mountain climbers - 3 x 20 sec"
-      ],
-      "muscle-gain": [
-        "Dynamic warm-up - 8 minutes",
-        "Goblet squats (dumbbell/backpack) - 4 x 10",
-        "Push-ups or dumbbell floor press - 4 x 8-12",
-        "Single-arm dumbbell row - 4 x 10 each side",
-        "Dumbbell shoulder press - 3 x 10",
-        "Glute bridge - 3 x 15"
-      ],
-      strength: [
-        "Mobility + warm-up - 8-10 minutes",
-        "Split squat - 4 x 8 each leg",
-        "Push-up progression - 4 x 6-10",
-        "Single-arm row - 4 x 8 each side",
-        "Dumbbell Romanian deadlift - 3 x 8-10",
-        "Plank - 3 x 30 sec"
-      ],
-      "general-fitness": [
-        "5 minute easy warm-up",
-        "Bodyweight squat - 3 x 12",
-        "Incline push-up - 3 x 10",
-        "Bird dog - 3 x 10 each side",
-        "Dumbbell row - 3 x 12 each side",
-        "Walking lunges - 2 x 12 each leg"
-      ]
-    }
-  },
-  intermediate: {
-    gym: {
-      "fat-loss": [
-        "Interval cardio 20 minutes",
-        "Leg press - 4 x 10",
-        "Bench press machine or dumbbell press - 4 x 10",
-        "Cable row - 4 x 10",
-        "Walking lunges - 3 x 12 each leg",
-        "Core circuit 10 minutes"
-      ],
-      "muscle-gain": [
-        "Warm-up 10 minutes",
-        "Barbell squat or leg press - 4 x 6-10",
-        "Bench press - 4 x 6-10",
-        "Bent-over row - 4 x 8-10",
-        "Romanian deadlift - 3 x 8",
-        "Biceps + triceps superset - 3 x 12"
-      ],
-      strength: [
-        "Warm-up and activation 10 minutes",
-        "Barbell squat - 5 x 5",
-        "Bench press - 5 x 5",
-        "Deadlift - 4 x 4",
-        "Overhead press - 4 x 6",
-        "Plank + side plank - 3 rounds"
-      ],
-      "general-fitness": [
-        "Cardio warm-up 10 minutes",
-        "Squat pattern - 4 x 8",
-        "Push pattern - 4 x 8",
-        "Pull pattern - 4 x 8",
-        "Lunge pattern - 3 x 10 each leg",
-        "Core + cooldown 10 minutes"
-      ]
-    },
-    home: {
-      "fat-loss": [
-        "HIIT circuit 20 minutes",
-        "Squat to press - 4 x 12",
-        "Push-ups - 4 x 12",
-        "Rows (dumbbell/band) - 4 x 12",
-        "Reverse lunges - 3 x 12 each leg",
-        "Core finisher 8 minutes"
-      ],
-      "muscle-gain": [
-        "Warm-up 8 minutes",
-        "Goblet squat - 4 x 8-12",
-        "Dumbbell floor press - 4 x 8-12",
-        "Single-arm row - 4 x 8-12",
-        "Dumbbell RDL - 4 x 10",
-        "Overhead press - 3 x 10"
-      ],
-      strength: [
-        "Warm-up 10 minutes",
-        "Bulgarian split squat - 4 x 6-8 each leg",
-        "Weighted push-up or floor press - 4 x 6-8",
-        "Heavy one-arm row - 4 x 6-8",
-        "Single-leg RDL - 3 x 8 each side",
-        "Plank variations - 3 rounds"
-      ],
-      "general-fitness": [
-        "Mobility warm-up 6 minutes",
-        "Bodyweight + dumbbell full-body circuit - 4 rounds",
-        "Squats, push-ups, rows, lunges, plank",
-        "Work 40 sec / Rest 20 sec per movement",
-        "Cooldown stretch 8 minutes"
-      ]
-    }
-  },
-  advanced: {
-    gym: {
-      "fat-loss": [
-        "Heavy lifting + intervals 60 minutes total",
-        "Compound lift tri-set x 4 rounds",
-        "Accessory hypertrophy blocks x 3",
-        "Conditioning finisher 12-15 minutes"
-      ],
-      "muscle-gain": [
-        "Push/Pull/Leg split with progressive overload",
-        "Main lifts 4-6 sets + accessories 3-5 sets",
-        "Track volume and load weekly"
-      ],
-      strength: [
-        "Periodized squat/bench/deadlift programming",
-        "Low rep top sets + back-off volume",
-        "Technique and recovery sessions included"
-      ],
-      "general-fitness": [
-        "Hybrid plan: strength, conditioning, mobility",
-        "4-6 sessions/week with varied intensities"
-      ]
-    },
-    home: {
-      "fat-loss": [
-        "High-density circuits and sprint intervals",
-        "Progressive bodyweight and dumbbell complexes"
-      ],
-      "muscle-gain": [
-        "High-volume dumbbell training split",
-        "Advanced tempo work and drop sets"
-      ],
-      strength: [
-        "Unilateral strength blocks and explosive drills",
-        "Loaded carries, advanced core, progression tracking"
-      ],
-      "general-fitness": [
-        "Athletic hybrid training schedule",
-        "Conditioning, strength, and mobility cycles"
-      ]
-    }
-  }
-};
+function getPrompt(profile) {
+  return `
+You are an expert certified fitness coach.
+Create a practical, safe, personalized weekly workout plan.
 
-function getFriendlyGoalLabel(goal) {
-  const labels = {
-    "fat-loss": "Fat Loss",
-    "muscle-gain": "Muscle Gain",
-    strength: "Build Strength",
-    "general-fitness": "General Fitness"
-  };
-  return labels[goal] || "Your Goal";
+User profile:
+- Goal: ${profile.goal}
+- Workout location: ${profile.location}
+- Experience: ${profile.experience}
+- Age: ${profile.age}
+- Gender: ${profile.gender}
+- Activity level: ${profile.activityLevel}
+- Program style preference: ${profile.programStyle}
+- Days per week: ${profile.days}
+- Minutes per session: ${profile.time}
+- Cardio after weights: ${profile.cardio}
+- Injury/medical/training history: ${profile.history || "None provided"}
+
+Rules:
+- For beginners: avoid heavy high-skill barbell lifts unless clearly appropriate.
+- Keep exercises aligned with equipment/location.
+- Respect available training days and session time.
+- Include warm-up, main work, and cooldown.
+- Include progression advice for 4 weeks.
+- Add personalized caution points based on history.
+- Include cardio recommendations based on goal and preference.
+
+Return in plain text with sections:
+1) Profile Snapshot
+2) Weekly Split
+3) Day-by-Day Plan
+4) Cardio Plan
+5) 4-Week Progression
+6) Personalized Recommendations and Cautions
+  `.trim();
 }
 
-form.addEventListener("submit", (event) => {
+function formatTextAsHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+}
+
+async function getPlanFromBackend(prompt) {
+  const response = await fetch("/.netlify/functions/generate-plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || "Failed to generate AI plan");
+  }
+
+  return data.text;
+}
+
+function fallbackPlan(profile) {
+  return `
+1) Profile Snapshot
+- Goal: ${profile.goal}
+- Location: ${profile.location}
+- Experience: ${profile.experience}
+- Days/week: ${profile.days}
+- Time/session: ${profile.time} minutes
+
+2) Weekly Split
+- Program style: ${profile.programStyle === "no-preference" ? "AI-chosen balanced split" : profile.programStyle}
+- Suggested schedule: ${profile.days} days/week with at least 1 rest day after 2-3 sessions.
+
+3) Day-by-Day Plan
+- Start each session with 8-10 min warm-up and end with 5-8 min cooldown.
+- Build workouts around compound + isolation movements matching your equipment (${profile.location}).
+- Keep 5-7 exercises/session to fit your time.
+
+4) Cardio Plan
+- Cardio preference: ${profile.cardio}.
+- If yes/sometimes: 10-20 min low-to-moderate cardio after lifting 2-4 times/week.
+
+5) 4-Week Progression
+- Week 1: Learn form and stop with 2 reps in reserve.
+- Week 2: Add 1 set on key movements or +2 reps each set.
+- Week 3: Increase load slightly (2-5%) if technique remains clean.
+- Week 4: Deload by reducing volume by 25-35%.
+
+6) Personalized Recommendations and Cautions
+- Based on your profile, prioritize movement quality, sleep, protein, and hydration.
+- History notes: ${profile.history || "No specific issues shared."}
+- Stop any exercise causing sharp pain and replace with safer alternatives.
+  `.trim();
+}
+
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const button = form.querySelector("button[type='submit']");
+  const profile = {
+    goal: document.getElementById("goal").value,
+    location: form.location.value,
+    experience: form.experience.value,
+    age: document.getElementById("age").value,
+    gender: document.getElementById("gender").value,
+    activityLevel: document.getElementById("activity-level").value,
+    days: document.getElementById("days").value,
+    time: document.getElementById("time").value,
+    programStyle: document.getElementById("program-style").value,
+    cardio: form.cardio.value,
+    history: document.getElementById("history").value.trim()
+  };
 
-  const goal = document.getElementById("goal").value;
-  const location = form.location.value;
-  const experience = form.experience.value;
-
-  if (!goal || !location || !experience) {
+  if (Object.values(profile).some((value) => !value && value !== profile.history)) {
     return;
   }
 
-  const selectedPlan = plans[experience][location][goal];
-  const beginnerNote =
-    experience === "beginner"
-      ? "<p><strong>Beginner note:</strong> This plan avoids advanced barbell lifts like heavy back squats and conventional deadlifts. Focus on machines, dumbbells, and safe technique first.</p>"
+  button.disabled = true;
+  button.textContent = "Generating AI Plan...";
+  resultSection.classList.remove("hidden");
+  planOutput.innerHTML = "<p>Building your personalized plan...</p>";
+
+  try {
+    let planText = "";
+    let backendError = "";
+    const prompt = getPrompt(profile);
+
+    try {
+      planText = await getPlanFromBackend(prompt);
+    } catch (error) {
+      backendError = error.message;
+      planText = fallbackPlan(profile);
+    }
+
+    const usingFallback = backendError
+      ? `<p><strong>Note:</strong> AI service unavailable, so a fallback template is shown. Reason: ${backendError}</p>`
       : "";
 
-  let html = `
-    <p><strong>Goal:</strong> ${getFriendlyGoalLabel(goal)}</p>
-    <p><strong>Workout location:</strong> ${location === "gym" ? "Gym" : "Home"}</p>
-    <p><strong>Experience:</strong> ${experience.charAt(0).toUpperCase() + experience.slice(1)}</p>
-    ${beginnerNote}
-    <h3>Weekly Structure</h3>
-    <p>Train 3-4 days per week. Rest at least 1 day between hard sessions. Start light and increase weight slowly when reps feel easier.</p>
-    <h3>Session Plan</h3>
+    planOutput.innerHTML = `
+    ${usingFallback}
+    <h3>Your Personalized Workout Plan</h3>
+    <p>${formatTextAsHtml(planText)}</p>
     <ul>
-      ${selectedPlan.map((exercise) => `<li>${exercise}</li>`).join("")}
-    </ul>
-    <h3>Important Tips</h3>
-    <ul>
-      <li>Warm up before training and cool down after.</li>
-      <li>Stop any movement that causes sharp pain.</li>
-      <li>Prioritize consistent sleep, hydration, and protein intake.</li>
+      <li>This is educational guidance, not medical advice.</li>
+      <li>If you have any medical conditions, consult a professional first.</li>
     </ul>
   `;
-
-  planOutput.innerHTML = html;
-  resultSection.classList.remove("hidden");
-  resultSection.scrollIntoView({ behavior: "smooth" });
+  } catch (error) {
+    planOutput.innerHTML = `<p>Could not generate AI plan right now. ${error.message}. Please try again.</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Generate My Free Plan";
+    resultSection.scrollIntoView({ behavior: "smooth" });
+  }
 });
