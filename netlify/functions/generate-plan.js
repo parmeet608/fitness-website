@@ -8,12 +8,12 @@ exports.handler = async (event) => {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return {
         statusCode: 500,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing GEMINI_API_KEY in Netlify environment variables." })
+        body: JSON.stringify({ error: "Missing GROQ_API_KEY in Netlify environment variables." })
       };
     }
 
@@ -27,26 +27,40 @@ exports.handler = async (event) => {
       };
     }
 
-    const models = ["gemini-1.5-flash", "gemini-2.0-flash"];
-    let lastError = "Gemini API request failed";
+    const models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"];
+    let lastError = "Groq API request failed";
 
     for (const model of models) {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const endpoint = "https://api.groq.com/openai/v1/chat/completions";
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          model,
+          temperature: 0.7,
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert fitness coach. Provide safe, practical workout guidance."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
         })
       });
 
       const data = await response.json();
       if (!response.ok) {
-        lastError = data?.error?.message || `Gemini API request failed on model ${model}`;
+        lastError = data?.error?.message || `Groq API request failed on model ${model}`;
         continue;
       }
 
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = data?.choices?.[0]?.message?.content;
       if (text) {
         return {
           statusCode: 200,
