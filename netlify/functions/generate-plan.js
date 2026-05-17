@@ -44,7 +44,7 @@ exports.handler = async (event) => {
           messages: [
             {
               role: "system",
-              content: "You are an expert fitness coach. Provide safe, practical workout guidance."
+              content: "You are an expert fitness coach. Provide safe, practical workout guidance. Always follow the user's required [SECTION:] and [DAY:] format exactly, keep days in numeric order, and include Warm-up, Main Workout, and Cooldown for each training day."
             },
             {
               role: "user",

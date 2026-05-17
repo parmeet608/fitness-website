@@ -23,12 +23,221 @@ let currentStep = 1;
 let latestPlanText = "";
 let latestNutritionText = "";
 
-function formatTextAsHtml(text) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function cleanBullet(line) {
-  return line.replace(/^[-*]\s*/, "").trim();
+  return line.replace(/^[-*•]\s*/, "").replace(/^\d+[\.\)]\s*/, "").trim();
+}
+
+const SECTION_ORDER = [
+  { pattern: /profile\s*snapshot/i, title: "Profile Snapshot" },
+  { pattern: /weekly\s*split/i, title: "Weekly Split" },
+  { pattern: /day[\s-]*by[\s-]*day/i, title: "Day-by-Day Plan" },
+  { pattern: /4[\s-]*week|progression/i, title: "4-Week Progression" },
+  { pattern: /recommend|caution|personalized/i, title: "Recommendations & Cautions" }
+];
+
+const WEEKDAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+const DAY_SUBSECTION_LABELS = [
+  { pattern: /^warm[\s-]?up/i, label: "Warm-up" },
+  { pattern: /^main(\s+work|\s+session|\s+lifts?)?$/i, label: "Main Workout" },
+  { pattern: /^cool[\s-]?down/i, label: "Cooldown" },
+  { pattern: /^exercises?$/i, label: "Exercises" },
+  { pattern: /^finisher$/i, label: "Finisher" },
+  { pattern: /^notes?$/i, label: "Notes" }
+];
+
+function isSectionHeader(line) {
+  return (
+    /^\[SECTION:\s*.+\]$/i.test(line) ||
+    /^(?:#{1,3}\s*)?\d+[\.\)]\s+\S/.test(line) ||
+    /^(?:#{1,3}\s+)(Profile Snapshot|Weekly Split|Day[\s-]*by[\s-]*Day|4[\s-]*Week|Progression|Recommendations|Cautions)/i.test(line)
+  );
+}
+
+function parseSectionTitle(line) {
+  const bracket = line.match(/^\[SECTION:\s*(.+)\]$/i);
+  if (bracket) return bracket[1].trim();
+  const numbered = line.match(/^(?:#{1,3}\s*)?\d+[\.\)]\s*(.+)$/);
+  if (numbered) return numbered[1].replace(/^#+\s*/, "").trim();
+  const markdown = line.match(/^#{1,3}\s+(.+)$/);
+  if (markdown) return markdown[1].trim();
+  return line.replace(/^#+\s*/, "").trim();
+}
+
+function canonicalSectionTitle(title) {
+  const match = SECTION_ORDER.find((s) => s.pattern.test(title));
+  return match ? match.title : title;
+}
+
+function sectionSortIndex(title) {
+  const idx = SECTION_ORDER.findIndex((s) => s.pattern.test(title));
+  return idx === -1 ? SECTION_ORDER.length : idx;
+}
+
+function getSections(planText) {
+  const lines = planText.split("\n").map((l) => l.trim()).filter(Boolean);
+  const sections = [];
+  let current = null;
+
+  lines.forEach((line) => {
+    if (isSectionHeader(line)) {
+      current = { title: parseSectionTitle(line), lines: [] };
+      sections.push(current);
+      return;
+    }
+    if (!current) {
+      current = { title: "Workout Plan", lines: [] };
+      sections.push(current);
+    }
+    current.lines.push(line);
+  });
+
+  const normalized = (sections.length ? sections : [{ title: "Workout Plan", lines }]).map((s) => ({
+    title: canonicalSectionTitle(s.title),
+    lines: s.lines
+  }));
+
+  return normalized.sort((a, b) => sectionSortIndex(a.title) - sectionSortIndex(b.title));
+}
+
+function getDaySortKey(title) {
+  const dayNum = title.match(/\bday\s*(\d+)\b/i);
+  if (dayNum) return Number(dayNum[1]);
+  const lower = title.toLowerCase();
+  const weekday = WEEKDAY_ORDER.findIndex((d) => lower.includes(d));
+  if (weekday >= 0) return weekday + 1;
+  return 100;
+}
+
+function isDayHeader(line) {
+  return (
+    /^\[DAY:\s*.+\]$/i.test(line) ||
+    /^(?:#{2,4}\s*)?(day\s*\d+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(line)
+  );
+}
+
+function parseDayTitle(line) {
+  const bracket = line.match(/^\[DAY:\s*(.+)\]$/i);
+  if (bracket) return bracket[1].trim();
+  return line.replace(/^#{1,4}\s*/, "").replace(/^[-*•]\s*/, "").trim();
+}
+
+function matchSubsection(line) {
+  const cleaned = line.replace(/^[-*•#]+\s*/, "").replace(/\*+/g, "").trim();
+  const colonSplit = cleaned.match(/^([^:]{2,40}):\s*(.*)$/);
+  const labelSource = colonSplit ? colonSplit[1] : cleaned;
+  const inlineBody = colonSplit ? colonSplit[2].trim() : "";
+  const match = DAY_SUBSECTION_LABELS.find((s) => s.pattern.test(labelSource));
+  if (!match) return null;
+  return { label: match.label, inlineBody };
+}
+
+function parseDayBlocks(lines) {
+  const days = [];
+  let currentDay = null;
+  let currentBlock = null;
+
+  const pushBlockLine = (text) => {
+    if (!text) return;
+    if (!currentBlock) {
+      currentBlock = { label: "Exercises", items: [] };
+      currentDay.blocks.push(currentBlock);
+    }
+    currentBlock.items.push(text);
+  };
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    if (isDayHeader(line)) {
+      currentDay = { title: parseDayTitle(line), blocks: [] };
+      days.push(currentDay);
+      currentBlock = null;
+      return;
+    }
+
+    if (!currentDay) {
+      currentDay = { title: `Day ${days.length + 1}`, blocks: [] };
+      days.push(currentDay);
+    }
+
+    const subsection = matchSubsection(line);
+    if (subsection) {
+      currentBlock = { label: subsection.label, items: [] };
+      currentDay.blocks.push(currentBlock);
+      if (subsection.inlineBody) pushBlockLine(subsection.inlineBody);
+      return;
+    }
+
+    if (/^[-*•]\s+/.test(line) || /^\d+[\.\)]\s+/.test(line)) {
+      pushBlockLine(cleanBullet(line));
+      return;
+    }
+
+    pushBlockLine(line);
+  });
+
+  return days.sort((a, b) => getDaySortKey(a.title) - getDaySortKey(b.title));
+}
+
+function renderLinesAsContent(lines) {
+  const bullets = [];
+  const paragraphs = [];
+
+  lines.forEach((line) => {
+    if (/^[-*•]\s+/.test(line) || /^\d+[\.\)]\s+/.test(line)) {
+      bullets.push(cleanBullet(line));
+    } else {
+      paragraphs.push(line);
+    }
+  });
+
+  const parts = [];
+  if (paragraphs.length) {
+    parts.push(`<p class="section-body">${escapeHtml(paragraphs.join(" "))}</p>`);
+  }
+  if (bullets.length) {
+    parts.push(`<ul class="section-list">${bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`);
+  }
+  return parts.join("") || `<p class="section-body muted">No details provided.</p>`;
+}
+
+function renderDayCards(lines) {
+  const days = parseDayBlocks(lines);
+  if (!days.length) return renderLinesAsContent(lines);
+
+  const cards = days.map((day, index) => {
+    const blocks = day.blocks.length
+      ? day.blocks
+      : [{ label: "Workout", items: ["See plan details above."] }];
+
+    const blocksHtml = blocks.map((block) => {
+      const items = block.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+      return `
+        <div class="day-block">
+          <h5 class="day-block__title">${escapeHtml(block.label)}</h5>
+          <ul class="day-block__list">${items || "<li>Details not provided.</li>"}</ul>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <article class="day-card" style="animation-delay:${index * 90}ms">
+        <h4 class="day-card__title">${escapeHtml(day.title)}</h4>
+        ${blocksHtml}
+      </article>
+    `;
+  }).join("");
+
+  return `<div class="day-cards">${cards}</div>`;
 }
 
 function getPrompt(profile) {
@@ -56,77 +265,69 @@ Rules:
 - Include progression advice for 4 weeks.
 - Add personalized caution points based on history.
 
-Return in plain text with sections:
-1) Profile Snapshot
-2) Weekly Split
-3) Day-by-Day Plan
-4) 4-Week Progression
-5) Personalized Recommendations and Cautions
+IMPORTANT: Use this exact structure and headings (do not skip sections):
+
+[SECTION: Profile Snapshot]
+- Goal: ...
+- Location: ...
+- Experience: ...
+- Days/week: ...
+- Session length: ...
+
+[SECTION: Weekly Split]
+- Describe the weekly schedule in order (Day 1, Day 2, etc.).
+
+[SECTION: Day-by-Day Plan]
+
+[DAY: Day 1 - descriptive title]
+Warm-up:
+- exercise
+Main Workout:
+- exercise (sets x reps or time)
+Cooldown:
+- exercise
+
+[DAY: Day 2 - descriptive title]
+(repeat for every training day in order)
+
+[SECTION: 4-Week Progression]
+- Week 1: ...
+- Week 2: ...
+- Week 3: ...
+- Week 4: ...
+
+[SECTION: Recommendations & Cautions]
+- bullet points
   `.trim();
-}
-
-function getSections(planText) {
-  const sections = planText.split(/\n(?=\d\)\s)/).map((s) => s.trim()).filter(Boolean).map((section) => {
-    const lines = section.split("\n").map((l) => l.trim()).filter(Boolean);
-    const titleLine = lines.shift() || "";
-    return { title: titleLine.replace(/^\d\)\s*/, ""), lines };
-  });
-  return sections.length ? sections : [{ title: "Workout Plan", lines: planText.split("\n") }];
-}
-
-function renderDayCards(lines) {
-  const days = [];
-  let current = null;
-  const dayHeaderPattern = /^(day\s*\d+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
-
-  lines.forEach((rawLine) => {
-    const line = cleanBullet(rawLine);
-    if (!line) return;
-    if (dayHeaderPattern.test(line)) {
-      current = { title: line, items: [] };
-      days.push(current);
-      return;
-    }
-    if (!current) {
-      current = { title: `Day ${days.length + 1}`, items: [] };
-      days.push(current);
-    }
-    current.items.push(line);
-  });
-
-  const cards = days.map((day, index) => {
-    const listItems = day.items.map((item) => `<li>${formatTextAsHtml(item)}</li>`).join("");
-    return `
-      <article class="day-card" style="animation-delay:${index * 90}ms">
-        <h4>${formatTextAsHtml(day.title)}</h4>
-        <ul>${listItems || "<li>Details were not provided.</li>"}</ul>
-      </article>
-    `;
-  }).join("");
-  return cards ? `<div class="day-cards">${cards}</div>` : "";
 }
 
 function renderPlan(planText, noteHtml) {
   const sections = getSections(planText);
   const rendered = sections.map((section) => {
-    if (/day-?by-?day plan/i.test(section.title)) {
-      return `<div class="section-block"><h3>${formatTextAsHtml(section.title)}</h3>${renderDayCards(section.lines)}</div>`;
-    }
-    const bullets = section.lines.filter((line) => /^[-*]\s+/.test(line));
-    const plainLines = section.lines.filter((line) => !/^[-*]\s+/.test(line));
-    const bulletHtml = bullets.length ? `<ul>${bullets.map((line) => `<li>${formatTextAsHtml(cleanBullet(line))}</li>`).join("")}</ul>` : "";
-    const plainHtml = plainLines.length ? `<p>${formatTextAsHtml(plainLines.join("\n"))}</p>` : "";
-    return `<div class="section-block"><h3>${formatTextAsHtml(section.title)}</h3>${plainHtml}${bulletHtml}</div>`;
+    const isDaySection = /day[\s-]*by[\s-]*day/i.test(section.title);
+    const body = isDaySection ? renderDayCards(section.lines) : renderLinesAsContent(section.lines);
+    return `
+      <section class="plan-section">
+        <h3 class="plan-section__title">${escapeHtml(section.title)}</h3>
+        <div class="plan-section__body">${body}</div>
+      </section>
+    `;
   }).join("");
 
   return `
     ${noteHtml}
-    <h3>Your Personalized Workout Plan</h3>
-    ${rendered}
-    <ul class="footnotes">
-      <li>This is educational guidance, not medical advice.</li>
-      <li>If you have any medical conditions, consult a professional first.</li>
-    </ul>
+    <header class="plan-header">
+      <h2 class="plan-header__title">Your Personalized Workout Plan</h2>
+      <p class="plan-header__subtitle">Follow sections in order from overview to daily workouts.</p>
+    </header>
+    <div class="plan-sections">${rendered}</div>
+    <footer class="plan-footer">
+      <h4 class="plan-footer__title">Important Notes</h4>
+      <ul class="footnotes">
+        <li>This is educational guidance, not medical advice.</li>
+        <li>If you have any medical conditions, consult a professional first.</li>
+      </ul>
+    </footer>
   `;
 }
 
@@ -142,33 +343,61 @@ async function getPlanFromBackend(prompt) {
 }
 
 function fallbackPlan(profile) {
+  const days = Math.min(Number(profile.days) || 3, 6);
+  const templates = [
+    {
+      title: "Lower Body + Core",
+      warmup: ["5 min light cardio", "Hip circles x 10 each"],
+      main: ["Goblet squat 3x10", "Romanian deadlift 3x10", "Walking lunges 3x10/leg", "Plank 3x30-45 sec"],
+      cooldown: ["Quad stretch 30 sec/side", "Hamstring stretch 30 sec/side"]
+    },
+    {
+      title: "Upper Push + Mobility",
+      warmup: ["Band pull-aparts x 15", "Arm circles x 10 each"],
+      main: ["Incline push-up 3x10", "Dumbbell shoulder press 3x10", "Triceps dips 3x10", "Side plank 3x20 sec/side"],
+      cooldown: ["Chest doorway stretch", "Shoulder cross-body stretch"]
+    },
+    {
+      title: "Upper Pull + Posterior Chain",
+      warmup: ["Cat-cow x 8", "Scapular retractions x 12"],
+      main: ["Lat pulldown or row 3x10", "Face pulls 3x15", "Hip hinge drill 2x10", "Glute bridge 3x12"],
+      cooldown: ["Lat stretch", "Child's pose 45 sec"]
+    }
+  ];
+
+  const dayBlocks = [];
+  for (let i = 0; i < days; i += 1) {
+    const t = templates[i % templates.length];
+    dayBlocks.push(
+      `[DAY: Day ${i + 1} - ${t.title}]\nWarm-up:\n- ${t.warmup.join("\n- ")}\nMain Workout:\n- ${t.main.join("\n- ")}\nCooldown:\n- ${t.cooldown.join("\n- ")}`
+    );
+  }
+
   return `
-1) Profile Snapshot
+[SECTION: Profile Snapshot]
 - Goal: ${profile.goal}
 - Location: ${profile.location}
 - Experience: ${profile.experience}
 - Days/week: ${profile.days}
-- Time/session: ${profile.time} minutes
+- Session length: ${profile.time} minutes
 
-2) Weekly Split
-- Program style: ${profile.programStyle === "no-preference" ? "AI-chosen balanced split" : profile.programStyle}
-- Suggested schedule: ${profile.days} days/week with at least 1 rest day after 2-3 sessions.
+[SECTION: Weekly Split]
+- Program style: ${profile.programStyle === "no-preference" ? "Balanced split" : profile.programStyle}
+- Training days: ${profile.days} per week with at least 1 rest day between harder sessions.
 
-3) Day-by-Day Plan
-- Day 1: Lower body + core with controlled form and moderate volume.
-- Day 2: Upper push + mobility cooldown.
-- Day 3: Upper pull + posterior chain focus.
-- Day 4+: Repeat pattern based on weekly days and recovery.
+[SECTION: Day-by-Day Plan]
 
-4) 4-Week Progression
-- Week 1: Learn form and stop with 2 reps in reserve.
-- Week 2: Add 1 set on key movements or +2 reps each set.
-- Week 3: Increase load slightly (2-5%) if technique remains clean.
-- Week 4: Deload by reducing volume by 25-35%.
+${dayBlocks.join("\n\n")}
 
-5) Personalized Recommendations and Cautions
-- History notes: ${profile.history || "No specific issues shared."}
-- Stop any exercise causing sharp pain and replace with safer alternatives.
+[SECTION: 4-Week Progression]
+- Week 1: Learn form; stop with 2 reps in reserve.
+- Week 2: Add 1 set on key lifts or +2 reps per set.
+- Week 3: Increase load 2-5% if technique stays clean.
+- Week 4: Deload — reduce sets/reps by 25-35%.
+
+[SECTION: Recommendations & Cautions]
+- History: ${profile.history || "No specific issues shared."}
+- Stop any exercise causing sharp pain; swap for a safer variation.
   `.trim();
 }
 
@@ -229,26 +458,62 @@ function getNutritionPlan(profile) {
   const fats = Math.round(0.8 * weightKg);
   const carbs = Math.max(120, Math.round((calories - protein * 4 - fats * 9) / 4));
 
-  const nutritionText = `
-Estimated calories: ${calories} kcal/day
-Protein: ${protein} g/day
-Carbs: ${carbs} g/day
-Fats: ${fats} g/day
+  const goalLabel = {
+    "fat-loss": "Fat loss",
+    "muscle-gain": "Muscle gain",
+    strength: "Strength",
+    "general-fitness": "General fitness"
+  }[profile.goal] || profile.goal;
 
-Suggested meal structure:
-- 3 main meals + 1 high-protein snack
-- 25-40g protein per meal
-- Place more carbs around your workout window
-- Hydration target: 2.5 to 3.5 liters/day
-  `.trim();
+  const nutritionText = [
+    "Daily Targets",
+    `Calories: ${calories} kcal/day`,
+    `Protein: ${protein} g/day`,
+    `Carbs: ${carbs} g/day`,
+    `Fats: ${fats} g/day`,
+    "",
+    "Meal Structure",
+    "3 main meals + 1 high-protein snack",
+    "25-40g protein per meal",
+    "Place more carbs around your workout window",
+    "Hydration: 2.5 to 3.5 liters/day"
+  ].join("\n");
 
   nutritionOutput.innerHTML = `
-    <h3>Nutrition Recommendation</h3>
-    <p>${formatTextAsHtml(nutritionText)}</p>
-    <ul>
-      <li>Adjust calories by 100-150 every 2 weeks based on progress.</li>
-      <li>Prioritize whole foods and consistent protein intake.</li>
-    </ul>
+    <header class="nutrition-header">
+      <h2 class="nutrition-header__title">Nutrition Guide</h2>
+      <p class="nutrition-header__subtitle">Estimated targets for your goal: ${escapeHtml(goalLabel)}</p>
+    </header>
+
+    <section class="nutrition-section">
+      <h3 class="nutrition-section__title">Daily Targets</h3>
+      <p class="nutrition-section__lead">Aim for these daily averages to support your training.</p>
+      <dl class="macro-grid">
+        <div class="macro-item"><dt>Calories</dt><dd>${calories} kcal</dd></div>
+        <div class="macro-item"><dt>Protein</dt><dd>${protein} g</dd></div>
+        <div class="macro-item"><dt>Carbs</dt><dd>${carbs} g</dd></div>
+        <div class="macro-item"><dt>Fats</dt><dd>${fats} g</dd></div>
+      </dl>
+    </section>
+
+    <section class="nutrition-section">
+      <h3 class="nutrition-section__title">Meal Structure</h3>
+      <p class="nutrition-section__lead">Simple framework for organizing your day.</p>
+      <ul class="nutrition-list">
+        <li>3 main meals + 1 high-protein snack</li>
+        <li>25–40g protein per meal</li>
+        <li>Place more carbs around your workout window</li>
+        <li>Hydration target: 2.5 to 3.5 liters per day</li>
+      </ul>
+    </section>
+
+    <section class="nutrition-section">
+      <h3 class="nutrition-section__title">Tips</h3>
+      <ul class="nutrition-list">
+        <li>Adjust calories by 100–150 every 2 weeks based on progress.</li>
+        <li>Prioritize whole foods and consistent protein intake.</li>
+      </ul>
+    </section>
   `;
   return nutritionText;
 }
